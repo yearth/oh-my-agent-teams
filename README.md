@@ -1,5 +1,7 @@
 # oh-my-agent-teams
 
+[English](./README.md) · [中文](./README.zh.md)
+
 A shared agent registry for multi-agent workflows. Tracks active AI agents across claude-code and opencode sessions, enabling agents to discover each other and communicate.
 
 ## How it works
