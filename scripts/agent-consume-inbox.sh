@@ -47,8 +47,8 @@ while IFS= read -r line && [[ $COUNT -lt $MAX_MESSAGES ]]; do
   if [[ $AGE -gt $EXPIRE_SECONDS ]]; then continue; fi
 
   FROM=$(echo "$line" | jq -r '.from // "unknown"' 2>/dev/null)
-  CONTENT=$(echo "$line" | jq -r '.content // ""' 2>/dev/null)
-  MESSAGES="${MESSAGES}[${FROM}]: ${CONTENT}\n"
+  CONTENT=$(echo "$line" | jq -r '.content // ""' 2>/dev/null | tr -d '\n\r')
+  MESSAGES="${MESSAGES}[${FROM}]: ${CONTENT}"$'\n'
   COUNT=$(( COUNT + 1 ))
 done < "$INBOX"
 
@@ -60,5 +60,6 @@ if [[ $COUNT -eq 0 ]]; then
 fi
 
 # Inject messages into claude context via systemMessage
-MSG_TEXT="You have ${COUNT} inbox message(s):\n${MESSAGES}"
-printf '{"systemMessage": "%s"}' "$(echo -e "$MSG_TEXT" | sed 's/"/\\"/g')"
+# Use jq to build valid JSON — avoids literal newlines breaking the JSON string
+MSG_TEXT="You have ${COUNT} inbox message(s):"$'\n'"${MESSAGES}"
+jq -n --arg msg "$MSG_TEXT" '{"systemMessage": $msg}'

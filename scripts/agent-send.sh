@@ -10,6 +10,7 @@ REGISTRY="$HOME/.agent/active-agents.json"
 INBOX_DIR="$HOME/.agent/inbox"
 TO="${1:-}"
 CONTENT="${2:-}"
+CONTENT="${CONTENT%$'\n'}"  # strip trailing newline if any
 MAX_CONTENT_LEN=500
 MAX_INBOX_BYTES=51200  # 50KB
 
@@ -73,6 +74,6 @@ if [[ -f "$REGISTRY" ]]; then
 fi
 
 # Fallback: write to inbox
-printf '{"from":"%s","content":%s,"sentAt":"%s"}\n' \
-  "$FROM" "$(echo "$CONTENT" | jq -Rs '.')" "$SENT_AT" >> "$INBOX"
+jq -cn --arg from "$FROM" --arg content "$CONTENT" --arg sentAt "$SENT_AT" \
+  '{"from":$from,"content":$content,"sentAt":$sentAt}' >> "$INBOX"
 echo "Queued in $TO's inbox"
