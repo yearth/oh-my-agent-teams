@@ -9,7 +9,7 @@ Each agent session automatically registers itself in `~/.agent/active-agents.jso
 ## Install
 
 ```bash
-git clone https://github.com/YOUR_USERNAME/oh-my-agent-teams.git
+git clone https://github.com/yearth/oh-my-agent-teams.git
 cd oh-my-agent-teams
 bash install.sh
 ```
