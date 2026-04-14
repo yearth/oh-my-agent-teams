@@ -6,8 +6,9 @@
 
 set -euo pipefail
 
-REGISTRY="$HOME/.agent/active-agents.json"
 INBOX_DIR="$HOME/.agent/inbox"
+# shellcheck source=agent-common.sh
+source "$(dirname "$0")/agent-common.sh"
 TO="${1:-}"
 CONTENT="${2:-}"
 CONTENT="${CONTENT%$'\n'}"  # strip trailing newline if any
@@ -19,11 +20,7 @@ if [[ -z "$TO" || -z "$CONTENT" ]]; then
   exit 1
 fi
 
-# Resolve sender name (AGENT_NAME injected by opencode; claude-code uses identity file)
-MY_NAME="${AGENT_NAME:-}"
-if [[ -z "$MY_NAME" ]]; then
-  MY_NAME="$(cat "$HOME/.agent/identity-$PPID" 2>/dev/null || true)"
-fi
+resolve_my_name
 
 # Guard: no self-messaging
 if [[ -n "$MY_NAME" && "$MY_NAME" == "$TO" ]]; then
@@ -53,11 +50,11 @@ FROM="${MY_NAME:-unknown}"
 
 # Check if target is idle and in zellij — deliver immediately if so
 if [[ -f "$REGISTRY" ]]; then
-  STATUS=$(jq -r --arg name "$TO" '.[$name].status // "unknown"' "$REGISTRY")
-  PANE_ID=$(jq -r --arg name "$TO" '.[$name].paneId // empty' "$REGISTRY")
-  TARGET_PID=$(jq -r --arg name "$TO" '.[$name].pid // empty' "$REGISTRY")
+  read -r STATUS PANE_ID TARGET_PID < <(jq -r --arg name "$TO" \
+    '.[$name] | (.status // "unknown") + " " + (.paneId | tostring) + " " + (.pid | tostring)' \
+    "$REGISTRY" 2>/dev/null || echo "unknown  ")
 
-  if [[ "$STATUS" == "idle" && -n "$PANE_ID" && -n "$TARGET_PID" ]]; then
+  if [[ "$STATUS" == "idle" && -n "$PANE_ID" && "$PANE_ID" != "null" && -n "$TARGET_PID" && "$TARGET_PID" != "null" ]]; then
     SESSION=$(ps eww -p "$TARGET_PID" 2>/dev/null \
       | grep -o 'ZELLIJ_SESSION_NAME=[^ ]*' | cut -d= -f2 || true)
     ZELLIJ=$(command -v zellij 2>/dev/null \

@@ -36,18 +36,16 @@ if [[ -f "$CLAUDE_SETTINGS" ]]; then
   if jq -e '.hooks.SessionStart[]?.hooks[]?.command | select(contains("agent-register"))' "$CLAUDE_SETTINGS" >/dev/null 2>&1; then
     warn "claude-code hooks already configured, skipping"
   else
-    # UserPromptSubmit hook needs to resolve agent name at runtime
-    BUSY_CMD="NAME=\$(cat \$HOME/.agent/identity-\$PPID 2>/dev/null); [ -n \"\$NAME\" ] && $SCRIPTS_DIR/agent-status.sh \"\$NAME\" busy || true"
     UPDATED=$(jq \
       --arg reg     "$SCRIPTS_DIR/agent-register.sh" \
       --arg unreg   "$SCRIPTS_DIR/agent-unregister-by-pid.sh" \
       --arg consume "$SCRIPTS_DIR/agent-consume-inbox.sh" \
-      --arg busy    "$BUSY_CMD" \
+      --arg busy    "$SCRIPTS_DIR/agent-set-busy.sh" \
       '
-      .hooks.SessionStart      = ([{"hooks": [{"type": "command", "command": $reg}]}]                                   + (.hooks.SessionStart // [])) |
-      .hooks.SessionEnd        = ([{"hooks": [{"type": "command", "command": $unreg, "async": true}]}]                  + (.hooks.SessionEnd // [])) |
-      .hooks.UserPromptSubmit  = ([{"hooks": [{"type": "command", "command": $busy, "async": true}]}]                   + (.hooks.UserPromptSubmit // [])) |
-      .hooks.Stop              = ([{"hooks": [{"type": "command", "command": $consume, "asyncRewake": true}]}]          + (.hooks.Stop // []))
+      .hooks.SessionStart     = ([{"hooks": [{"type": "command", "command": $reg}]}]                                  + (.hooks.SessionStart // [])) |
+      .hooks.SessionEnd       = ([{"hooks": [{"type": "command", "command": $unreg, "async": true}]}]                 + (.hooks.SessionEnd // [])) |
+      .hooks.UserPromptSubmit = ([{"hooks": [{"type": "command", "command": $busy,  "async": true}]}]                 + (.hooks.UserPromptSubmit // [])) |
+      .hooks.Stop             = ([{"hooks": [{"type": "command", "command": $consume, "asyncRewake": true}]}]         + (.hooks.Stop // []))
       ' "$CLAUDE_SETTINGS")
     echo "$UPDATED" > "$CLAUDE_SETTINGS"
     ok "claude-code hooks configured in $CLAUDE_SETTINGS"

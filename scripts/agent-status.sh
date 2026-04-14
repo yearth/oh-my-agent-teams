@@ -5,7 +5,9 @@
 
 set -euo pipefail
 
-REGISTRY="$HOME/.agent/active-agents.json"
+# shellcheck source=agent-common.sh
+source "$(dirname "$0")/agent-common.sh"
+
 NAME="${1:-}"
 STATUS="${2:-}"
 
@@ -19,10 +21,4 @@ if [[ "$STATUS" != "busy" && "$STATUS" != "idle" ]]; then
   exit 1
 fi
 
-if [[ ! -f "$REGISTRY" ]]; then
-  exit 0
-fi
-
-jq --arg name "$NAME" --arg status "$STATUS" \
-  'if has($name) then .[$name].status = $status else . end' \
-  "$REGISTRY" > "$REGISTRY.tmp" && mv "$REGISTRY.tmp" "$REGISTRY"
+update_status "$NAME" "$STATUS"
