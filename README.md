@@ -6,7 +6,7 @@ A shared agent registry for multi-agent workflows. Tracks active AI agents acros
 
 ## How it works
 
-Each agent session automatically registers itself in `~/.agent/active-agents.json` with its name, pane ID, working directory, and a summary of its current task. Any agent can query this registry to find and message other agents.
+Each agent session automatically registers itself in `~/.agent/active-agents.json` with a generated name, working directory, and a summary of its current task. Any agent can query this registry to find and message other agents.
 
 ## Install
 
@@ -18,50 +18,27 @@ bash install.sh
 
 Then restart claude-code / opencode.
 
-## Usage
+## Talking to agents
 
-**List active agents:**
-```bash
-~/.agent/scripts/agent-list.sh
-```
+Once installed, just talk to your agent naturally. The agent knows how to find other agents and send messages to them.
 
-**Send a message to another agent (zellij):**
-```bash
-PANE=$(jq -r '.["swift-fox"].paneId' ~/.agent/active-agents.json)
-SESSION=$(ps eww -p $(jq -r '.["swift-fox"].pid' ~/.agent/active-agents.json) 2>/dev/null \
-  | grep -o 'ZELLIJ_SESSION_NAME=[^ ]*' | cut -d= -f2)
-zellij --session "$SESSION" action write-chars --pane-id "$PANE" "your message"
-zellij --session "$SESSION" action send-keys  --pane-id "$PANE" "Enter"
-```
+**Ask who's online:**
+> "Who are the active agents right now?"
 
-**Update your summary:**
-```bash
-MY_NAME="${AGENT_NAME:-$(cat ~/.agent/identity-$PPID 2>/dev/null)}"
-~/.agent/scripts/agent-update.sh "$MY_NAME" "implementing auth module"
-```
+**Ask an agent to send a message:**
+> "Send a message to swift-fox: the API schema is ready, you can start implementing the client."
 
-## Registry format
+**Ask an agent to check its own identity:**
+> "What's your agent name?"
 
-```json
-{
-  "swift-fox": {
-    "paneId": 2,
-    "pid": 36838,
-    "role": "dev",
-    "cwd": "/path/to/project",
-    "summary": "implementing auth module",
-    "startedAt": "2026-04-14T10:00:00Z",
-    "tool": "claude-code"
-  }
-}
-```
+The agent handles the rest — looking up the registry, resolving pane IDs, and delivering the message.
 
 ## Supported tools
 
-| Tool | Registration | Identity |
-|------|-------------|----------|
-| claude-code | SessionStart/SessionEnd hooks | `~/.agent/identity-$PPID` |
-| opencode | `session.created/deleted` plugin events | `$AGENT_NAME` env var |
+| Tool | Auto-registration |
+|------|------------------|
+| claude-code | ✓ via SessionStart/SessionEnd hooks |
+| opencode | ✓ via session.created/deleted plugin events |
 
 ## Requirements
 
