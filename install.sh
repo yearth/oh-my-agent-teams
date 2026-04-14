@@ -47,7 +47,7 @@ if [[ -f "$CLAUDE_SETTINGS" ]]; then
       .hooks.SessionStart      = ([{"hooks": [{"type": "command", "command": $reg}]}]                                   + (.hooks.SessionStart // [])) |
       .hooks.SessionEnd        = ([{"hooks": [{"type": "command", "command": $unreg, "async": true}]}]                  + (.hooks.SessionEnd // [])) |
       .hooks.UserPromptSubmit  = ([{"hooks": [{"type": "command", "command": $busy, "async": true}]}]                   + (.hooks.UserPromptSubmit // [])) |
-      .hooks.Stop              = ([{"hooks": [{"type": "command", "command": $consume}]}]                               + (.hooks.Stop // []))
+      .hooks.Stop              = ([{"hooks": [{"type": "command", "command": $consume, "asyncRewake": true}]}]          + (.hooks.Stop // []))
       ' "$CLAUDE_SETTINGS")
     echo "$UPDATED" > "$CLAUDE_SETTINGS"
     ok "claude-code hooks configured in $CLAUDE_SETTINGS"

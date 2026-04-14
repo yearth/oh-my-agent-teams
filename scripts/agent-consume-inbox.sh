@@ -59,7 +59,8 @@ if [[ $COUNT -eq 0 ]]; then
   exit 0
 fi
 
-# Inject messages into claude context via systemMessage
+# Inject messages into claude context via systemMessage and wake claude up (exit 2)
 # Use jq to build valid JSON — avoids literal newlines breaking the JSON string
 MSG_TEXT="You have ${COUNT} inbox message(s):"$'\n'"${MESSAGES}"
 jq -n --arg msg "$MSG_TEXT" '{"systemMessage": $msg}'
+exit 2
