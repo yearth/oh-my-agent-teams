@@ -18,8 +18,11 @@ if [[ -z "$TO" || -z "$CONTENT" ]]; then
   exit 1
 fi
 
-# Resolve sender name
-MY_NAME="${AGENT_NAME:-$(cat "$HOME/.agent/identity-$PPID" 2>/dev/null)}"
+# Resolve sender name (AGENT_NAME injected by opencode; claude-code uses identity file)
+MY_NAME="${AGENT_NAME:-}"
+if [[ -z "$MY_NAME" ]]; then
+  MY_NAME="$(cat "$HOME/.agent/identity-$PPID" 2>/dev/null || true)"
+fi
 
 # Guard: no self-messaging
 if [[ -n "$MY_NAME" && "$MY_NAME" == "$TO" ]]; then

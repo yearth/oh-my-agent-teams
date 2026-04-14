@@ -11,7 +11,10 @@ INBOX_DIR="$HOME/.agent/inbox"
 MAX_MESSAGES=10
 EXPIRE_SECONDS=3600  # 1 hour
 
-MY_NAME="${AGENT_NAME:-$(cat "$HOME/.agent/identity-$PPID" 2>/dev/null)}"
+MY_NAME="${AGENT_NAME:-}"
+if [[ -z "$MY_NAME" ]]; then
+  MY_NAME="$(cat "$HOME/.agent/identity-$PPID" 2>/dev/null || true)"
+fi
 
 # Update status to idle
 if [[ -n "$MY_NAME" && -f "$REGISTRY" ]]; then
