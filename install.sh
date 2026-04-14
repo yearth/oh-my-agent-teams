@@ -92,6 +92,24 @@ else
   warn "~/.config/opencode/config.json not found, skipping opencode setup"
 fi
 
+# ── 6. install claude-code skill ─────────────────────────────────────────────
+# Skills are claude-code specific; opencode has no equivalent mechanism.
+CLAUDE_SKILLS_DIR="$HOME/.claude/skills"
+SKILL_SRC="$REPO_DIR/skills/agent-messaging"
+SKILL_DEST="$CLAUDE_SKILLS_DIR/agent-messaging"
+
+if [[ -d "$HOME/.claude" ]]; then
+  if [[ -d "$SKILL_DEST" ]]; then
+    warn "agent-messaging skill already installed, skipping"
+  else
+    mkdir -p "$CLAUDE_SKILLS_DIR"
+    cp -r "$SKILL_SRC" "$SKILL_DEST"
+    ok "agent-messaging skill installed to $SKILL_DEST"
+  fi
+else
+  warn "~/.claude not found, skipping skill installation"
+fi
+
 # ── done ──────────────────────────────────────────────────────────────────────
 echo ""
 echo "Done! Restart claude-code / opencode for hooks to take effect."
