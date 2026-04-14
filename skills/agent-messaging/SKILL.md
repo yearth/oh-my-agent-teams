@@ -5,11 +5,7 @@ description: Use when sending a message to another Claude agent, coordinating be
 
 # Agent Messaging
 
-Send messages to other active agents by name. Pane IDs are resolved automatically from the agent registry — no manual lookup needed.
-
-## Transport
-
-Currently implemented via **zellij** (requires zellij 0.44.1 or later). tmux support is planned.
+Send messages to other active agents by name. The registry tracks each agent's status (`idle`/`busy`) and handles delivery automatically — direct if the target is idle, queued in their inbox if busy.
 
 ## Find Active Agents
 
@@ -17,47 +13,48 @@ Currently implemented via **zellij** (requires zellij 0.44.1 or later). tmux sup
 ~/.agent/scripts/agent-list.sh
 ```
 
-Output example:
+Output includes `status` field:
 ```json
 {
-  "swift-fox": { "paneId": 1, "pid": 36838, "cwd": "/project/a", "summary": "implementing auth module" },
-  "iron-leaf":  { "paneId": 3, "pid": 41200, "cwd": "/project/b", "summary": "" }
+  "swift-fox": { "paneId": 1, "pid": 36838, "status": "idle", "summary": "waiting for input" },
+  "iron-leaf":  { "paneId": 3, "pid": 41200, "status": "busy", "summary": "implementing auth" }
 }
 ```
 
 ## Send a Message
 
-Resolve the target's `paneId` and session name from the registry, then send:
+Use `agent-send.sh` — it handles routing automatically:
+- Target **idle**: delivers immediately via zellij
+- Target **busy**: writes to inbox, delivered on next Stop
 
 ```bash
-PANE=$(jq -r '.["swift-fox"].paneId' ~/.agent/active-agents.json)
-SESSION=$(ps eww -p $(jq -r '.["swift-fox"].pid' ~/.agent/active-agents.json) 2>/dev/null \
-  | grep -o 'ZELLIJ_SESSION_NAME=[^ ]*' | cut -d= -f2)
-
-# Text and Enter must be separate commands
-zellij --session "$SESSION" action write-chars --pane-id "$PANE" "your message here"
-zellij --session "$SESSION" action send-keys  --pane-id "$PANE" "Enter"
+~/.agent/scripts/agent-send.sh swift-fox "API schema is ready, you can start the client"
 ```
 
-> **Note:** `write-chars` and `Enter` must be two separate commands. `\n` inside `write-chars` renders as `^M` and does not submit.
+Limits: content ≤ 500 chars, inbox ≤ 50KB per agent, no self-messaging.
 
-## Update Your Own Summary
-
-Once you know your task, update your summary so other agents can see what you're doing:
+## Check Your Own Identity
 
 ```bash
-# Find your own name first
-MY_NAME=$(jq -r --argjson pid $$ 'to_entries[] | select(.value.pid == $pid) | .key' ~/.agent/active-agents.json)
+MY_NAME="${AGENT_NAME:-$(cat ~/.agent/identity-$PPID 2>/dev/null)}"
+echo "$MY_NAME"
+```
 
-# Then update
+## Update Your Summary
+
+```bash
+MY_NAME="${AGENT_NAME:-$(cat ~/.agent/identity-$PPID 2>/dev/null)}"
 ~/.agent/scripts/agent-update.sh "$MY_NAME" "your task description"
 ```
+
+## How Inbox Works
+
+When you receive inbox messages, they are injected at the start of your next turn via `systemMessage`. Read them and respond or act accordingly. Messages older than 1 hour are automatically discarded.
 
 ## Common Issues
 
 | Problem | Cause | Fix |
 |---------|-------|-----|
-| Agent not in registry | Session started before hook was configured | Check `agent-list.sh`; re-open session if needed |
-| Message goes to wrong process | Another process is in foreground of that pane | Confirm target agent is idle and waiting for input |
-| `--pane-id` flag not recognized | zellij older than 0.44.1 | Upgrade: `cargo install --locked zellij` |
-| Message appears but not submitted | Used `\n` inside `write-chars` | Use separate `send-keys Enter` command |
+| Agent not in registry | Session started before hook was configured | Re-open session |
+| Inbox full | Too many queued messages | Ask sender to wait; you'll process them next turn |
+| `--pane-id` flag not recognized | zellij < 0.44.1 | Upgrade: `cargo install --locked zellij` |

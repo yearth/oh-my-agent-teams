@@ -47,6 +47,7 @@ UPDATED=$(jq \
     "role": $role,
     "cwd": $cwd,
     "summary": "",
+    "status": "idle",
     "startedAt": $startedAt,
     "tool": $tool
   }' "$REGISTRY")
