@@ -7,6 +7,34 @@ description: Use when sending a message to another Claude agent, coordinating be
 
 Send messages to other active agents by name. The registry tracks each agent's status (`idle`/`busy`) and handles delivery automatically — direct if the target is idle, queued in their inbox if busy.
 
+## ALWAYS do this before sending a message
+
+**You must confirm your own name before sending.** Never assume or guess your name.
+
+```bash
+MY_NAME="${AGENT_NAME:-$(cat ~/.agent/identity-$PPID 2>/dev/null)}"
+echo "My name is: $MY_NAME"
+```
+
+Run this command, read the output, and use that exact name as the `from` context when composing your message. If the output is empty, tell the user you cannot identify yourself and ask them to re-open the session.
+
+## Send a Message
+
+```bash
+~/.agent/scripts/agent-send.sh <target-name> "<message>"
+```
+
+- Target **idle**: delivers immediately via zellij
+- Target **busy**: writes to inbox, delivered on next Stop
+
+Example — always include your name so the recipient knows who to reply to:
+```bash
+MY_NAME="${AGENT_NAME:-$(cat ~/.agent/identity-$PPID 2>/dev/null)}"
+~/.agent/scripts/agent-send.sh iron-leaf "API schema is ready. Reply to $MY_NAME when done."
+```
+
+Limits: content ≤ 500 chars, inbox ≤ 50KB per agent, no self-messaging.
+
 ## Find Active Agents
 
 ```bash
@@ -21,23 +49,11 @@ Output includes `status` field:
 }
 ```
 
-## Send a Message
+## Replying to a message
 
-Use `agent-send.sh` — it handles routing automatically:
-- Target **idle**: delivers immediately via zellij
-- Target **busy**: writes to inbox, delivered on next Stop
-
+When you receive a message with a `from` field, reply using:
 ```bash
-~/.agent/scripts/agent-send.sh swift-fox "API schema is ready, you can start the client"
-```
-
-Limits: content ≤ 500 chars, inbox ≤ 50KB per agent, no self-messaging.
-
-## Check Your Own Identity
-
-```bash
-MY_NAME="${AGENT_NAME:-$(cat ~/.agent/identity-$PPID 2>/dev/null)}"
-echo "$MY_NAME"
+~/.agent/scripts/agent-send.sh <from-name> "<your reply>"
 ```
 
 ## Update Your Summary
@@ -55,6 +71,7 @@ When you receive inbox messages, they are injected at the start of your next tur
 
 | Problem | Cause | Fix |
 |---------|-------|-----|
+| My name is empty | Session started before hook was configured | Re-open session |
 | Agent not in registry | Session started before hook was configured | Re-open session |
 | Inbox full | Too many queued messages | Ask sender to wait; you'll process them next turn |
 | `--pane-id` flag not recognized | zellij < 0.44.1 | Upgrade: `cargo install --locked zellij` |
