@@ -12,11 +12,10 @@ Send messages to other active agents by name. The registry tracks each agent's s
 **You must confirm your own name before sending.** Never assume or guess your name.
 
 ```bash
-MY_NAME="${AGENT_NAME:-$(cat ~/.agent/identity-$PPID 2>/dev/null)}"
-echo "My name is: $MY_NAME"
+~/.agent/scripts/agent-whoami.sh
 ```
 
-Run this command, read the output, and use that exact name as the `from` context when composing your message. If the output is empty, tell the user you cannot identify yourself and ask them to re-open the session.
+Run this command and read the output. Use that exact name as the `from` context when composing your message. If the output is empty, tell the user you cannot identify yourself and ask them to re-open the session.
 
 ## Send a Message
 
@@ -29,7 +28,7 @@ Run this command, read the output, and use that exact name as the `from` context
 
 Example — always include your name so the recipient knows who to reply to:
 ```bash
-MY_NAME="${AGENT_NAME:-$(cat ~/.agent/identity-$PPID 2>/dev/null)}"
+MY_NAME=$(~/.agent/scripts/agent-whoami.sh)
 ~/.agent/scripts/agent-send.sh iron-leaf "API schema is ready. Reply to $MY_NAME when done."
 ```
 
@@ -59,7 +58,7 @@ When you receive a message with a `from` field, reply using:
 ## Update Your Summary
 
 ```bash
-MY_NAME="${AGENT_NAME:-$(cat ~/.agent/identity-$PPID 2>/dev/null)}"
+MY_NAME=$(~/.agent/scripts/agent-whoami.sh)
 ~/.agent/scripts/agent-update.sh "$MY_NAME" "your task description"
 ```
 

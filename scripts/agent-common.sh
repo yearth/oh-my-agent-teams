@@ -12,9 +12,21 @@ resolve_my_name() {
     MY_NAME="$(cat "$HOME/.agent/identity-$PPID" 2>/dev/null || true)"
   fi
   if [[ -z "$MY_NAME" && -f "$REGISTRY" ]]; then
-    MY_NAME="$(jq -r --argjson pid "$PPID" \
-      'to_entries[] | select(.value.pid == $pid) | .key' \
-      "$REGISTRY" 2>/dev/null | head -1 || true)"
+    # Walk up the process tree to find a pid that matches a registry entry
+    local cur="$PPID"
+    local depth=0
+    while [[ "$cur" -gt 1 && $depth -lt 20 ]]; do
+      local found
+      found="$(jq -r --argjson pid "$cur" \
+        'to_entries[] | select(.value.pid == $pid) | .key' \
+        "$REGISTRY" 2>/dev/null | head -1 || true)"
+      if [[ -n "$found" ]]; then
+        MY_NAME="$found"
+        break
+      fi
+      cur="$(ps -o ppid= -p "$cur" 2>/dev/null | tr -d ' ')" || break
+      depth=$(( depth + 1 ))
+    done
   fi
 }
 
